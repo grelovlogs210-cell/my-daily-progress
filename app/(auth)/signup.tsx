@@ -1,7 +1,7 @@
 import { Link } from "expo-router";
 import { useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { PrimaryButton } from "../../components/ui/PrimaryButton";
 import { Screen } from "../../components/ui/Screen";
 import { ScreenHeader } from "../../components/ui/ScreenHeader";
@@ -9,24 +9,24 @@ import { TextField } from "../../components/ui/TextField";
 import { theme } from "../../constants/theme";
 import { useAuth } from "../../hooks/useAuth";
 
-export default function LoginScreen() {
-  const { authMessage, isConfigured, signIn } = useAuth();
+export default function SignupScreen() {
+  const { authMessage, isConfigured, signUp } = useAuth();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [localMessage, setLocalMessage] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = async () => {
-    setIsSubmitting(true);
+  const handleSignup = async () => {
+    setIsLoading(true);
     setLocalMessage(null);
-
-    const result = await signIn(email.trim(), password);
-
+    const result = await signUp(name.trim(), email.trim(), password);
     if (result.error) {
       setLocalMessage(result.error);
+    } else if (result.message) {
+      setLocalMessage(result.message);
     }
-
-    setIsSubmitting(false);
+    setIsLoading(false);
   };
 
   return (
@@ -39,34 +39,27 @@ export default function LoginScreen() {
       </View>
 
       <ScreenHeader
-        eyebrow="Nutricao inteligente"
-        title="Fotografe. Acompanhe. Evolua."
-        subtitle="Agora com autenticacao real por e-mail e senha via Supabase, mantendo o resto do app em modo hibrido."
+        back
+        eyebrow="Cadastro"
+        title="Criar conta"
+        subtitle="Crie um usuario real no Supabase Auth. O trigger ja cria profile, metas e habitos padrao."
       />
 
       <View style={styles.form}>
+        <TextField label="Nome" onChangeText={setName} placeholder="Seu nome" value={name} />
         <TextField label="E-mail" onChangeText={setEmail} placeholder="voce@email.com" value={email} />
         <TextField label="Senha" onChangeText={setPassword} placeholder="********" secureTextEntry value={password} />
-
-        {!isConfigured ? <Text style={styles.warning}>Configure o Supabase antes de testar o login real.</Text> : null}
+        {!isConfigured ? <Text style={styles.warning}>Configure o Supabase antes de testar o cadastro real.</Text> : null}
         {authMessage || localMessage ? <Text style={styles.message}>{localMessage || authMessage}</Text> : null}
-
-        <PrimaryButton onPress={handleLogin} disabled={isSubmitting}>
-          {isSubmitting ? "Entrando..." : "Entrar"}
+        <PrimaryButton disabled={isLoading} onPress={handleSignup}>
+          {isLoading ? "Criando conta..." : "Criar conta"}
         </PrimaryButton>
-
-        <Link href="/(auth)/signup" asChild>
-          <Pressable style={styles.linkButton}>
-            <Text style={styles.linkButtonText}>Criar conta com e-mail</Text>
-          </Pressable>
-        </Link>
       </View>
 
-      {isSubmitting ? <ActivityIndicator color={theme.colors.brandDark} style={styles.spinner} /> : null}
+      {isLoading ? <ActivityIndicator color={theme.colors.brandDark} style={styles.spinner} /> : null}
 
       <Text style={styles.footerText}>
-        Use e-mail e senha do Supabase Auth. Se a confirmacao por e-mail estiver ativa, confirme antes do primeiro
-        login.
+        Ja tem conta? <Link href="/(auth)/login" style={styles.footerLink}>Entrar</Link>
       </Text>
     </Screen>
   );
@@ -113,24 +106,15 @@ const styles = StyleSheet.create({
   spinner: {
     marginTop: theme.spacing.md,
   },
-  linkButton: {
-    alignItems: "center",
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-  },
-  linkButtonText: {
-    color: theme.colors.text,
-    fontSize: 14,
-    fontWeight: "700",
-  },
   footerText: {
     color: theme.colors.textMuted,
     fontSize: 12,
     marginTop: "auto",
     paddingTop: theme.spacing.xxl,
     textAlign: "center",
+  },
+  footerLink: {
+    color: theme.colors.brandDark,
+    fontWeight: "700",
   },
 });

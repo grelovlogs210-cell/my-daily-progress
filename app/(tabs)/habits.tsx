@@ -1,21 +1,48 @@
-import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { HabitCheckItem } from "../../components/habits/HabitCheckItem";
 import { Card } from "../../components/ui/Card";
 import { Screen } from "../../components/ui/Screen";
 import { ScreenHeader } from "../../components/ui/ScreenHeader";
-import { habitChecklist, habits } from "../../lib/mock-data";
+import { habitChecklist, habits as mockHabits } from "../../lib/mock-data";
 import { theme } from "../../constants/theme";
+import { useAuth } from "../../hooks/useAuth";
+import { habitsService } from "../../services/habits.service";
+import type { Habit, HabitChecklistItem } from "../../types/health";
 
 export default function HabitsScreen() {
-  const [items, setItems] = useState(habitChecklist);
+  const { session } = useAuth();
+  const [items, setItems] = useState<HabitChecklistItem[]>(habitChecklist);
+  const [habits, setHabits] = useState<Habit[]>(mockHabits);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    habitsService
+      .getHabits(session)
+      .then((data) => {
+        if (!mounted) return;
+        setHabits(data.habits);
+        setItems(data.checklist.length ? data.checklist : habitChecklist);
+      })
+      .finally(() => {
+        if (mounted) setIsLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [session]);
+
+  const completedCount = items.filter((item) => item.checked).length;
 
   return (
     <Screen>
       <ScreenHeader
         eyebrow="Rotina"
         title="Habitos do dia"
-        subtitle="Checklist mockado do dia com itens prontos para virar logs reais na proxima fase."
+        subtitle="Habitos tentam ler do Supabase. Se ainda nao houver dados, o app continua com checklist mockado."
       />
 
       <Card>
@@ -30,6 +57,8 @@ export default function HabitsScreen() {
 
       <Card>
         <Text style={styles.listTitle}>Checklist</Text>
+        <Text style={styles.listSubtitle}>{completedCount} de {items.length} concluidos</Text>
+        {isLoading ? <ActivityIndicator color={theme.colors.brandDark} style={styles.loader} /> : null}
         {items.map((item) => (
           <HabitCheckItem
             item={item}
@@ -90,7 +119,15 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     fontSize: 16,
     fontWeight: "800",
+    marginBottom: 4,
+  },
+  listSubtitle: {
+    color: theme.colors.textMuted,
+    fontSize: 12,
     marginBottom: 8,
+  },
+  loader: {
+    marginBottom: 10,
   },
   habitSummaryRow: {
     flexDirection: "row",

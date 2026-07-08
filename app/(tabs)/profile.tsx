@@ -1,26 +1,52 @@
-import { useRouter } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { Card } from "../../components/ui/Card";
+import { PrimaryButton } from "../../components/ui/PrimaryButton";
 import { Screen } from "../../components/ui/Screen";
 import { ScreenHeader } from "../../components/ui/ScreenHeader";
-import { dailyGoals, profile } from "../../lib/mock-data";
+import { dailyGoals as mockGoals, profile as mockProfile } from "../../lib/mock-data";
 import { theme } from "../../constants/theme";
+import { useAuth } from "../../hooks/useAuth";
+import { goalsService } from "../../services/goals.service";
+import { profileService } from "../../services/profile.service";
+import type { DailyGoals, Profile } from "../../types/health";
 
 export default function ProfileScreen() {
-  const router = useRouter();
+  const { session, signOut } = useAuth();
+  const [profile, setProfile] = useState<Profile>(mockProfile);
+  const [goals, setGoals] = useState<DailyGoals>(mockGoals);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    Promise.all([profileService.getProfile(session), goalsService.getGoals(session)])
+      .then(([profileData, goalsData]) => {
+        if (!mounted) return;
+        setProfile(profileData);
+        setGoals(goalsData);
+      })
+      .finally(() => {
+        if (mounted) setIsLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [session]);
 
   return (
     <Screen>
       <ScreenHeader
         eyebrow="Conta"
         title="Perfil e metas"
-        subtitle="Visao mockada das metas nutricionais e fisicas que vao para o banco na proxima fase."
+        subtitle="Profile e metas ja tentam ler do Supabase. Se ainda nao existir dado real, o app usa fallback mockado."
       />
 
       <Card>
         <View style={styles.profileRow}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>LM</Text>
+            <Text style={styles.avatarText}>{profile.name.slice(0, 2).toUpperCase()}</Text>
           </View>
           <View style={styles.profileMeta}>
             <Text style={styles.name}>{profile.name}</Text>
@@ -29,21 +55,25 @@ export default function ProfileScreen() {
         </View>
       </Card>
 
+      {isLoading ? <ActivityIndicator color={theme.colors.brandDark} /> : null}
+
       <Card>
         <InfoRow label="Objetivo" value={profile.goalLabel} />
-        <InfoRow label="Calorias" value={`${dailyGoals.kcal} kcal`} />
-        <InfoRow label="Proteina" value={`${dailyGoals.protein} g`} />
-        <InfoRow label="Gordura" value={`${dailyGoals.fat} g`} />
-        <InfoRow label="Fibra" value={`${dailyGoals.fiber} g`} />
-        <InfoRow label="Agua" value={`${dailyGoals.waterMl / 1000} L`} />
+        <InfoRow label="Calorias" value={`${goals.kcal} kcal`} />
+        <InfoRow label="Proteina" value={`${goals.protein} g`} />
+        <InfoRow label="Gordura" value={`${goals.fat} g`} />
+        <InfoRow label="Fibra" value={`${goals.fiber} g`} />
+        <InfoRow label="Agua" value={`${goals.waterMl / 1000} L`} />
         <InfoRow label="Peso alvo" value={`${profile.targetWeightKg} kg`} />
         <InfoRow label="Altura" value={profile.heightLabel} />
       </Card>
 
-      <Pressable onPress={() => router.push("/exercises")} style={styles.linkCard}>
-        <Text style={styles.linkTitle}>Ver mock de exercicios</Text>
-        <Text style={styles.linkSubtitle}>A navegacao de stack continua pronta para essa area.</Text>
+      <Pressable style={styles.linkCard}>
+        <Text style={styles.linkTitle}>Sessao atual</Text>
+        <Text style={styles.linkSubtitle}>{session?.user.email ?? "Sem usuario autenticado"}</Text>
       </Pressable>
+
+      <PrimaryButton onPress={signOut} variant="secondary">Sair</PrimaryButton>
     </Screen>
   );
 }
