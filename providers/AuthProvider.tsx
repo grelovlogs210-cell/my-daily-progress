@@ -1,7 +1,8 @@
 import type { PropsWithChildren } from "react";
 import { createContext, useEffect, useMemo, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { isSupabaseConfigured } from "../lib/supabase";
+import { envMessages } from "../lib/env";
+import { isSupabaseConfigured, supabaseConfigError } from "../lib/supabase";
 import { authService } from "../services/auth.service";
 
 type AuthContextValue = {
@@ -17,6 +18,36 @@ type AuthContextValue = {
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
+function getFriendlyAuthErrorMessage(message: string) {
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("invalid login credentials")) {
+    return "E-mail ou senha invalidos.";
+  }
+
+  if (normalized.includes("email not confirmed")) {
+    return "Confirme seu e-mail no Supabase antes de entrar.";
+  }
+
+  if (normalized.includes("user already registered")) {
+    return "Ja existe uma conta com esse e-mail.";
+  }
+
+  if (normalized.includes("password should be at least")) {
+    return "A senha precisa ter pelo menos 6 caracteres.";
+  }
+
+  if (normalized.includes("signup is disabled")) {
+    return "O cadastro por e-mail esta desativado no painel do Supabase Auth.";
+  }
+
+  if (normalized.includes("network request failed")) {
+    return "Nao foi possivel conectar ao Supabase. Verifique a URL, a anon key e sua rede.";
+  }
+
+  return message;
+}
+
 export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -26,7 +57,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     if (!isSupabaseConfigured) {
       setIsLoading(false);
-      setAuthMessage("Configure EXPO_PUBLIC_SUPABASE_URL e EXPO_PUBLIC_SUPABASE_ANON_KEY para ativar o login real.");
+      setAuthMessage(
+        envMessages.invalidSupabaseUrl ||
+          envMessages.missingVariables ||
+          supabaseConfigError ||
+          "Configure EXPO_PUBLIC_SUPABASE_URL e EXPO_PUBLIC_SUPABASE_ANON_KEY para ativar o login real.",
+      );
       return;
     }
 
@@ -34,7 +70,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       .getSession()
       .then(({ data, error }) => {
         if (error) {
-          setAuthMessage(error.message);
+          setAuthMessage(getFriendlyAuthErrorMessage(error.message));
         }
         setSession(data.session ?? null);
         setUser(data.session?.user ?? null);
@@ -66,8 +102,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
         const { error } = await authService.signIn(email, password);
         if (error) {
-          setAuthMessage(error.message);
-          return { error: error.message };
+          const message = getFriendlyAuthErrorMessage(error.message);
+          setAuthMessage(message);
+          return { error: message };
         }
 
         setAuthMessage(null);
@@ -80,8 +117,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
         const { data, error } = await authService.signUp(name, email, password);
         if (error) {
-          setAuthMessage(error.message);
-          return { error: error.message };
+          const message = getFriendlyAuthErrorMessage(error.message);
+          setAuthMessage(message);
+          return { error: message };
         }
 
         const message = data.session

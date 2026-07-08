@@ -5,7 +5,7 @@ import type { DailyGoals } from "../types/health";
 
 export const goalsService = {
   async getGoals(session: Session | null): Promise<DailyGoals> {
-    if (!isSupabaseConfigured || !session?.user) {
+    if (!isSupabaseConfigured || !supabase || !session?.user) {
       return mockGoals;
     }
 

@@ -18,6 +18,11 @@ export default function SignupScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSignup = async () => {
+    if (!name.trim() || !email.trim() || !password) {
+      setLocalMessage("Preencha nome, e-mail e senha para criar sua conta.");
+      return;
+    }
+
     setIsLoading(true);
     setLocalMessage(null);
     const result = await signUp(name.trim(), email.trim(), password);
@@ -49,7 +54,9 @@ export default function SignupScreen() {
         <TextField label="Nome" onChangeText={setName} placeholder="Seu nome" value={name} />
         <TextField label="E-mail" onChangeText={setEmail} placeholder="voce@email.com" value={email} />
         <TextField label="Senha" onChangeText={setPassword} placeholder="********" secureTextEntry value={password} />
-        {!isConfigured ? <Text style={styles.warning}>Configure o Supabase antes de testar o cadastro real.</Text> : null}
+        {!isConfigured ? (
+          <Text style={styles.warning}>Configure EXPO_PUBLIC_SUPABASE_URL e EXPO_PUBLIC_SUPABASE_ANON_KEY.</Text>
+        ) : null}
         {authMessage || localMessage ? <Text style={styles.message}>{localMessage || authMessage}</Text> : null}
         <PrimaryButton disabled={isLoading} onPress={handleSignup}>
           {isLoading ? "Criando conta..." : "Criar conta"}

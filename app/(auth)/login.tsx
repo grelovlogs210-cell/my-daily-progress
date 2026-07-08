@@ -17,6 +17,11 @@ export default function LoginScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLogin = async () => {
+    if (!email.trim() || !password) {
+      setLocalMessage("Preencha e-mail e senha para entrar.");
+      return;
+    }
+
     setIsSubmitting(true);
     setLocalMessage(null);
 
@@ -48,7 +53,9 @@ export default function LoginScreen() {
         <TextField label="E-mail" onChangeText={setEmail} placeholder="voce@email.com" value={email} />
         <TextField label="Senha" onChangeText={setPassword} placeholder="********" secureTextEntry value={password} />
 
-        {!isConfigured ? <Text style={styles.warning}>Configure o Supabase antes de testar o login real.</Text> : null}
+        {!isConfigured ? (
+          <Text style={styles.warning}>Configure EXPO_PUBLIC_SUPABASE_URL e EXPO_PUBLIC_SUPABASE_ANON_KEY.</Text>
+        ) : null}
         {authMessage || localMessage ? <Text style={styles.message}>{localMessage || authMessage}</Text> : null}
 
         <PrimaryButton onPress={handleLogin} disabled={isSubmitting}>

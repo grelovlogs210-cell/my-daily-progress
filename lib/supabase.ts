@@ -1,19 +1,21 @@
 import "react-native-url-polyfill/auto";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { createClient } from "@supabase/supabase-js";
-import { env, isSupabaseConfigured } from "./env";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { env, envMessages, isSupabaseConfigured } from "./env";
 
-const supabaseUrl = env.supabaseUrl || "https://placeholder.supabase.co";
-const supabaseAnonKey = env.supabaseAnonKey || "placeholder-anon-key";
+export const supabase: SupabaseClient | null = isSupabaseConfigured
+  ? createClient(env.supabaseUrl, env.supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        detectSessionInUrl: false,
+        persistSession: true,
+        storage: AsyncStorage,
+      },
+    })
+  : null;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    detectSessionInUrl: false,
-    persistSession: true,
-    storage: AsyncStorage,
-  },
-});
+export const supabaseConfigError =
+  envMessages.invalidSupabaseUrl || envMessages.missingVariables || "Supabase nao configurado.";
 
 export { isSupabaseConfigured };

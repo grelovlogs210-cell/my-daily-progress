@@ -49,7 +49,7 @@ function mapHabits(rows: HabitRow[], logs: HabitLogRow[]): { habits: Habit[]; ch
 
 export const habitsService = {
   async getHabits(session: Session | null): Promise<{ habits: Habit[]; checklist: HabitChecklistItem[] }> {
-    if (!isSupabaseConfigured || !session?.user) {
+    if (!isSupabaseConfigured || !supabase || !session?.user) {
       return { habits: mockHabits, checklist: habitChecklist };
     }
 

@@ -15,20 +15,25 @@ type ProfileRow = {
 
 function mapProfile(row: ProfileRow, email: string): Profile {
   const heightValue = row.height_cm ? `${(row.height_cm / 100).toFixed(2).replace(".", ",")} m` : mockProfile.heightLabel;
+  const goalLabelMap: Record<string, string> = {
+    weight_loss: "Perder peso",
+    maintenance: "Manter peso",
+    muscle_gain: "Ganhar massa",
+  };
 
   return {
     name: row.name || mockProfile.name,
     email,
     targetWeightKg: row.target_weight_kg ?? mockProfile.targetWeightKg,
     currentWeightKg: row.current_weight_kg ?? mockProfile.currentWeightKg,
-    goalLabel: mockProfile.goalLabel,
+    goalLabel: goalLabelMap[row.goal_type ?? ""] || mockProfile.goalLabel,
     heightLabel: heightValue,
   };
 }
 
 export const profileService = {
   async getProfile(session: Session | null): Promise<Profile> {
-    if (!isSupabaseConfigured || !session?.user) {
+    if (!isSupabaseConfigured || !supabase || !session?.user) {
       return mockProfile;
     }
 
